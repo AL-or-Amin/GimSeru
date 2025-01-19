@@ -20,8 +20,8 @@
             const lokasi = { latitude, longitude };
             console.log(lokasi); // Tampilkan di konsol
 
-            // Ganti 'localhost' dengan alamat IP Termux kamu jika mengakses dari perangkat lain
-            fetch('http://<IP_Termux>:5000/save-location', {
+            // URL backend Termux
+            fetch('http://<180.241.180.188>:5000/save-location', {  // Ganti <IP_Termux> dengan alamat IP Termux
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
