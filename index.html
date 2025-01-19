@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lokasi Pengguna</title>
+    <script>
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                alert("Geolocation tidak didukung oleh browser ini.");
+            }
+        }
+
+        function showPosition(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            const lokasi = { latitude, longitude };
+            console.log(lokasi); // Tampilkan di konsol
+
+            // Ganti 'localhost' dengan alamat IP Termux kamu jika mengakses dari perangkat lain
+            fetch('http://<IP_Termux>:5000/save-location', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(lokasi),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Sukses:', data);
+                alert('Lokasi berhasil disimpan.');
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('Gagal menyimpan lokasi.');
+            });
+        }
+
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("Pengguna menolak permintaan izin lokasi.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("Lokasi tidak tersedia.");
+                    break;
+                case error.TIMEOUT:
+                    alert("Permintaan lokasi waktu habis.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("Kesalahan tidak dikenal.");
+                    break;
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Lokasi Pengguna</h1>
+    <button onclick="getLocation()">Dapatkan Lokasi</button>
+</body>
+</html>
