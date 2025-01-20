@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Tracker</title>
+</head>
+<body>
+    <h1>Location Tracker</h1>
+    <button id="sendLocation">Send Location</button>
+    <script>
+        document.getElementById('sendLocation').onclick = function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    fetch('http://180.241.180.188:3000/location', { // Ganti dengan IP Anda
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            latitude: latitude,
+                            longitude: longitude
+                        })
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        console.log('Success:', data);
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+                });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        };
+    </script>
+</body>
+</html>
