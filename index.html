@@ -15,26 +15,33 @@
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
 
-                    fetch('http://180.241.180.188:3000/location', { // Ganti dengan IP Anda
+                    fetch('http://180.241.180.188:3000/location', { // Pastikan IP sesuai
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
                             latitude: latitude,
                             longitude: longitude
                         })
                     })
-                    .then(response => response.text())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
                     .then(data => {
                         console.log('Success:', data);
                     })
                     .catch((error) => {
                         console.error('Error:', error);
                     });
+                }, function(error) {
+                    console.error('Geolocation error:', error);
                 });
             } else {
-                alert('Geolocation is not supported by this browser.');
+                console.error('Geolocation is not supported by this browser.');
             }
         };
     </script>
