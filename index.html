@@ -3,47 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Location Tracker</title>
+    <title>Location and Camera Tracker</title>
 </head>
 <body>
-    <h1>Location Tracker</h1>
-    <button id="sendLocation">Send Location</button>
+    <h1>Location and Camera Tracker</h1>
+    <button id="getLocation">Send Location</button>
+    <button id="takePhoto">Take Photo</button>
+    <div id="photoContainer"></div>
+
     <script>
-        document.getElementById('sendLocation').onclick = function() {
+        const locationButton = document.getElementById('getLocation');
+        const photoButton = document.getElementById('takePhoto');
+
+        locationButton.onclick = () => {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
+                navigator.geolocation.getCurrentPosition(position => {
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
 
-                    fetch('http://180.241.180.188:3000/location', { // Pastikan IP sesuai
+                    fetch('http://180.241.180.188:3000/location', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({
-                            latitude: latitude,
-                            longitude: longitude
-                        })
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
+                        body: JSON.stringify({ latitude, longitude })
+                    }).then(response => {
+                        if (response.ok) {
+                            alert('Location sent successfully');
                         }
-                        return response.text();
-                    })
-                    .then(data => {
-                        console.log('Success:', data);
-                    })
-                    .catch((error) => {
-                        console.error('Error:', error);
                     });
-                }, function(error) {
-                    console.error('Geolocation error:', error);
                 });
             } else {
-                console.error('Geolocation is not supported by this browser.');
+                alert('Geolocation is not supported by this browser.');
             }
         };
+
+        photoButton.onclick = () => {
+            takePhoto();
+        };
+
+        function takePhoto() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    const video = document.createElement('video');
+                    video.srcObject = stream;
+                    video.play();
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+
+                    video.addEventListener('loadedmetadata', () => {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        context.drawImage(video, 0, 0);
+                        stream.getTracks().forEach(track => track.stop());
+
+                        const photoData = canvas.toDataURL('image/jpeg');
+                        uploadPhoto(photoData);
+                    });
+                })
+                .catch(err => {
+                    console.error('Error accessing camera: ', err);
+                });
+        }
+
+        function uploadPhoto(data) {
+            const blob = dataURItoBlob(data);
+            const formData = new FormData();
+            formData.append('photo', blob, 'photo.jpg');
+
+            fetch('http://180.241.180.188:3000/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Photo uploaded successfully');
+                }
+            });
+        }
+
+        function dataURItoBlob(dataURI) {
+            const byteString = atob(dataURI.split(',')[1]);
+            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            return new Blob([ab], { type: mimeString });
+        }
     </script>
 </body>
 </html>
