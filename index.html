@@ -4,95 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Location and Camera Tracker</title>
-</head>
-<body>
-    <h1>Location and Camera Tracker</h1>
-    <button id="getLocation">Send Location</button>
-    <button id="takePhoto">Take Photo</button>
-    <div id="photoContainer"></div>
-
     <script>
-        const locationButton = document.getElementById('getLocation');
-        const photoButton = document.getElementById('takePhoto');
+        function sendLocation() {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
 
-        locationButton.onclick = () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
-
-                    fetch('http://180.241.180.188:3000/location', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ latitude, longitude })
-                    }).then(response => {
-                        if (response.ok) {
-                            alert('Location sent successfully');
-                        }
-                    });
-                });
-            } else {
-                alert('Geolocation is not supported by this browser.');
-            }
-        };
-
-        photoButton.onclick = () => {
-            takePhoto();
-        };
-
-        function takePhoto() {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    const video = document.createElement('video');
-                    video.srcObject = stream;
-                    video.play();
-
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-
-                    video.addEventListener('loadedmetadata', () => {
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        context.drawImage(video, 0, 0);
-                        stream.getTracks().forEach(track => track.stop());
-
-                        const photoData = canvas.toDataURL('image/jpeg');
-                        uploadPhoto(photoData);
-                    });
+                fetch('http://180.241.180.188:3000/location', { // Ganti dengan IP Anda
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ latitude: lat, longitude: lng })
                 })
-                .catch(err => {
-                    console.error('Error accessing camera: ', err);
-                });
-        }
-
-        function uploadPhoto(data) {
-            const blob = dataURItoBlob(data);
-            const formData = new FormData();
-            formData.append('photo', blob, 'photo.jpg');
-
-            fetch('http://180.241.180.188:3000/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    alert('Photo uploaded successfully');
-                }
+                .then(response => response.text())
+                .then(data => console.log(data))
+                .catch(error => console.error('Error:', error));
+            }, (error) => {
+                console.error('Error getting location:', error);
             });
         }
 
-        function dataURItoBlob(dataURI) {
-            const byteString = atob(dataURI.split(',')[1]);
-            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) {
-                ia[i] = byteString.charCodeAt(i);
-            }
-            return new Blob([ab], { type: mimeString });
+        function sendPhoto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async () => {
+                const file = input.files[0];
+                const formData = new FormData();
+                formData.append('photo', file);
+
+                fetch('http://180.241.180.188:3000/upload', { // Ganti dengan IP Anda
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(data => console.log(data))
+                .catch(error => console.error('Error:', error));
+            };
+            input.click();
         }
     </script>
+</head>
+<body>
+    <h1>Location and Camera Tracker</h1>
+    <button onclick="sendLocation()">Send Location</button>
+    <button onclick="sendPhoto()">Send Photo</button>
 </body>
 </html>
