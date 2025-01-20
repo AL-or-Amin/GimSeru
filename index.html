@@ -1,64 +1,38 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lokasi Pengguna</title>
+    <title>Location Tracker</title>
     <script>
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(showPosition, showError);
-            } else {
-                alert("Geolocation tidak didukung oleh browser ini.");
-            }
-        }
+        function sendLocation() {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
 
-        function showPosition(position) {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-
-            const lokasi = { latitude, longitude };
-            console.log(lokasi); // Tampilkan di konsol
-
-            // URL backend Termux
-            fetch('http://<180.241.180.188>:5000/save-location', {  // Ganti <IP_Termux> dengan alamat IP Termux
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(lokasi),
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Sukses:', data);
-                alert('Lokasi berhasil disimpan.');
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                alert('Gagal menyimpan lokasi.');
+                fetch('http://<alamat_IP_Android_Anda>:3000/location', {  // Ganti dengan URL ngrok jika perlu
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        latitude: latitude,
+                        longitude: longitude
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
             });
-        }
-
-        function showError(error) {
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    alert("Pengguna menolak permintaan izin lokasi.");
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    alert("Lokasi tidak tersedia.");
-                    break;
-                case error.TIMEOUT:
-                    alert("Permintaan lokasi waktu habis.");
-                    break;
-                case error.UNKNOWN_ERROR:
-                    alert("Kesalahan tidak dikenal.");
-                    break;
-            }
         }
     </script>
 </head>
 <body>
-    <h1>Lokasi Pengguna</h1>
-    <button onclick="getLocation()">Dapatkan Lokasi</button>
+    <h1>Location Tracker</h1>
+    <button onclick="sendLocation()">Send Location</button>
 </body>
 </html>
