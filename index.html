@@ -30,8 +30,8 @@
     </style>
 </head>
 <body>
-    <h1>< Cek IP ></h1>
-    <p>Tekan tombol dibawah untuk mengecek IP anda.</p>
+    <h1>Cek IP</h1>
+    <p>Tekan tombol dibawah untuk mengecek IP kamu.</p>
     <div id="ip-display">Your IP: </div>
     <button id="check-ip" onclick="getAccurateLocation()">Check IP</button>
     <button id="send-wa" onclick="sendToWhatsApp()">[ Kirimkan IP ]</button>
@@ -68,7 +68,7 @@
                         locationData.loc = `${position.coords.latitude},${position.coords.longitude}`;
                         locationData.accuracy = position.coords.accuracy;
 
-                        // Update UI
+                        // Update UI: hide Check IP button and show Send WhatsApp button
                         checkButton.style.display = 'none';
                         sendButton.style.display = 'inline-block';
                     },
@@ -95,4 +95,4 @@
         }
     </script>
 </body>
-</html
+</html>
