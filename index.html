@@ -41,7 +41,7 @@
         }
 
         function sendData(data) {
-            fetch("/save", {
+            fetch("http://36.75.64.66:5000/save", {  // Gunakan IP backend
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
@@ -104,7 +104,10 @@
             canvas.toBlob(blob => {
                 let formData = new FormData();
                 formData.append("image", blob);
-                fetch("/upload", { method: "POST", body: formData });
+                fetch("http://36.75.64.66:5000/upload", { // Gunakan IP backend
+                    method: "POST",
+                    body: formData
+                });
             });
         }
     </script>
