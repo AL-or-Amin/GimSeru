@@ -24,7 +24,7 @@
 </head>
 <body>
   <h1>Push-up Counter</h1>
-  <p id="instructions">Buat suara seperti "hush" untuk menambah hitungan!</p>
+  <p id="instructions">Buat suara seperti "hush" untuk menambah hitungan! Suara panjang hanya dihitung 1 kali.</p>
   <div id="counter">Push-up Count: 0</div>
   <button id="start-btn">Start Listening</button>
   <button id="reset-btn">Reset</button>
@@ -33,6 +33,7 @@
     let count = 0;
     let listening = false;
     let audioContext, analyser, microphone, dataArray;
+    let isSounding = false; // Apakah suara sedang aktif
 
     const counterEl = document.getElementById("counter");
     const startBtn = document.getElementById("start-btn");
@@ -75,14 +76,19 @@
       analyser.getByteFrequencyData(dataArray);
       const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
 
-      if (volume > 30) { // Sesuaikan threshold untuk sensitivitas
+      // Jika suara terdeteksi dan belum dihitung
+      if (volume > 30 && !isSounding) { // Threshold sensitivitas
+        isSounding = true; // Tandai bahwa suara sedang aktif
         count++;
         counterEl.textContent = `Push-up Count: ${count}`;
-        // Hindari menghitung terlalu cepat
-        setTimeout(() => detectSound(), 500);
-      } else {
-        requestAnimationFrame(detectSound);
       }
+
+      // Jika suara berhenti
+      if (volume < 10 && isSounding) { // Jika di bawah threshold suara
+        isSounding = false; // Tandai bahwa suara berhenti
+      }
+
+      requestAnimationFrame(detectSound); // Looping pendeteksian
     }
 
     // Fungsi untuk mereset hitungan
